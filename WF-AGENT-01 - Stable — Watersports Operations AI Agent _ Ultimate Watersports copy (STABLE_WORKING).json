@@ -1,0 +1,449 @@
+{
+  "name": "WF-AGENT-01 - Stable — Watersports Operations AI Agent | Ultimate Watersports copy (STABLE/WORKING)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "297ba9cf-eae2-4010-ab3f-5d4f9fea27c0",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2896,
+        -464
+      ],
+      "webhookId": "6484e2d4-c71e-4b87-be6c-07f1bddcb449"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "{{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are an expert AI Operations Assistant for Ultimate Watersports.\n\nOur locations: hillarys (Hillarys Boat Harbour), south_perth (South Perth), geraldton, exmouth, broome.\n\nCore Rules:\n- When the user says \"all 5 locations\", \"all locations\", or \"every location\", call check_weather once for EACH of the 5 locations.\n- Always use get_fareharbor_bookings when bookings information is needed.\n- After getting weather and bookings, analyze if any customers need to be alerted (dangerous weather + active booking).\n- Log every major action using log_to_sheets.\n- Only use send_customer_email when there is a genuine safety concern.\n- After all tools return results, provide a clear, structured final answer.\n\nBe proactive with tool calls and precise in your analysis.",
+          "maxIterations": 10,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "b22fccc3-911d-47f3-a76c-1775811fd18a",
+      "name": "Operations Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -2448,
+        -464
+      ]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "ee17b847-cc68-4ad1-9bc2-42fd6d909b43",
+      "name": "Window Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        -2912,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Checks the current status of equipment at our watersports locations.\n\nUse this tool only when the user specifically asks about equipment availability, status, maintenance, or if gear is ready for use.\n\nParameters:\n- location (string, optional): One of \"hillarys\", \"south_perth\", \"geraldton\", \"exmouth\", or \"broome\". \n  Omit or use \"all\" to check all locations.\n\nReturns: Equipment status, availability, and any issues for each relevant location.\n\nDo not use this tool unless equipment is explicitly mentioned in the request.",
+        "jsCode": "let input = {};\ntry {\n  input = typeof query === 'string' ? JSON.parse(query) : (query || {});\n} catch(e) { input = {}; }\nconst q = (typeof query !== 'undefined') ? query : {};\nconst location = q.location || 'all';\nconst fleet = [\n  { id: 'JS-001', name: 'Jet Ski #1', type: 'Jet Ski', location: 'Hillarys Boat Harbour', engineHours: 38, threshold: 50, status: 'available' },\n  { id: 'JS-002', name: 'Jet Ski #2', type: 'Jet Ski', location: 'Hillarys Boat Harbour', engineHours: 49, threshold: 50, status: 'needs_service_soon' },\n  { id: 'JS-003', name: 'Jet Ski #3', type: 'Jet Ski', location: 'Geraldton',             engineHours: 22, threshold: 50, status: 'available' },\n  { id: 'FB-001', name: 'Flyboard #1', type: 'Flyboard', location: 'South Perth',         engineHours: 15, threshold: 30, status: 'available' },\n  { id: 'JS-004', name: 'Jet Ski #4', type: 'Jet Ski', location: 'Exmouth',               engineHours: 50, threshold: 50, status: 'under_maintenance' },\n  { id: 'JS-005', name: 'Jet Ski #5', type: 'Jet Ski', location: 'Broome',                engineHours: 8,  threshold: 50, status: 'available' }\n];\n\nconst filtered = location.toLowerCase() === 'all'\n  ? fleet\n  : fleet.filter(e => e.location.toLowerCase().includes(location.toLowerCase()));\n\nconst available    = filtered.filter(e => e.status === 'available');\nconst maintenance  = filtered.filter(e => e.status === 'under_maintenance');\nconst serviceSoon  = filtered.filter(e => e.status === 'needs_service_soon');\n\nreturn JSON.stringify({ location, totalUnits: filtered.length, available: available.length, underMaintenance: maintenance.length, equipment: filtered, summary: location + ': ' + available.length + ' available, ' + maintenance.length + ' in maintenance.' });"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -2352,
+        -144
+      ],
+      "id": "f7932f51-9012-4947-a789-120c256abc3e",
+      "name": "get_equipment_status"
+    },
+    {
+      "parameters": {
+        "description": "Logs an action, result, or decision to the Google Sheet (Agent Actions Log).\n\nUse this tool after every major step you take — especially after checking weather, getting bookings, making decisions about alerts, or sending emails. \nThis ensures everything is properly recorded for auditing.\n\nParameters:\n- action (string, required): Short name of the action (e.g. \"weather_check\", \"get_bookings\", \"customer_alert_decision\")\n- location (string, optional): Location if applicable (e.g. \"geraldton\", \"all\")\n- details (string, required): Clear description of what happened or the result\n- status (string, optional): \"completed\", \"idle\", or other status\n\nAlways use this tool to record your work.",
+        "jsCode": "let input = {};\ntry { input = typeof query === 'string' ? JSON.parse(query) : (query || {}); } catch(e) { input = {}; }\n\nconst data = input.data || {};\nconst sheet_name = input.sheet_name || 'Agent Actions Log';\n\nreturn JSON.stringify({\n  logged: true,\n  sheet_name,\n  timestamp: new Date().toISOString(),\n  agent: 'WF-AGENT-01',\n  action: data.action || 'log',\n  location: data.location || '',\n  details: JSON.stringify(data).slice(0, 200),\n  status: 'logged',\n  summary: 'Logged to ' + sheet_name + ' at ' + new Date().toISOString()\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"sheet_name\": {\n      \"type\": \"string\"\n    },\n    \"action\": {\n      \"type\": \"string\"\n    },\n    \"location\": {\n      \"type\": \"string\"\n    },\n    \"data\": {\n      \"type\": \"object\"\n    }\n  },\n  \"additionalProperties\": true,\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -2160,
+        -144
+      ],
+      "id": "0a789ab1-64da-4f03-ae06-05fe0046b6d0",
+      "name": "log_to_sheets"
+    },
+    {
+      "parameters": {
+        "description": "Suspends or cancels a specific booking slot in FareHarbor.\n\nUse this tool only when explicitly instructed to suspend or cancel a booking (e.g. due to unsafe weather or customer request).\n\nParameters:\n- booking_id or slot_id (string, required): The ID of the booking/slot to suspend\n- reason (string, optional): Reason for suspension (e.g. \"dangerous weather\")\n\nUse with caution — only when there is a valid operational reason.",
+        "jsCode": "let input = {};\ntry {\n  input = typeof query === 'string' ? JSON.parse(query) : (query || {});\n} catch(e) { input = {}; }\nconst q = (typeof query !== 'undefined') ? query : {};\nconst availability_pk = q.availability_pk || 'unknown';\nconst reason = q.reason || 'No reason provided';\nconst availability_pk = q.availability_pk || 'unknown';\nconst reason = q.reason || 'No reason provided';query;\n\n// DEMO MODE — logs the suspension without hitting real FareHarbor API\n// Replace with live API call when FareHarbor credentials are ready\n\nconsole.log(`[Suspend Slot] PK: ${availability_pk} | Reason: ${reason}`);\n\nreturn JSON.stringify({ success: true, availability_pk, reason, summary: 'Slot ' + availability_pk + ' suspended: ' + reason });"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -1760,
+        -144
+      ],
+      "id": "15ffc6d0-9ec8-4eb8-a6b5-2547177acd08",
+      "name": "suspend_fareharbor_slot"
+    },
+    {
+      "parameters": {
+        "description": "Sends an alert email to a customer via FareHarbor or directly.\n\nUse this tool ONLY when there is a clear reason to alert a customer — for example, dangerous weather conditions that will affect their booking.\n\nParameters:\n- customer_email (string, required)\n- customer_name (string, required)\n- booking_id or bookingPk (string, optional)\n- message (string, required): The alert message to send (keep it professional and clear)\n\nOnly call this tool after confirming dangerous weather + active booking for that customer.",
+        "jsCode": "let input = {};\ntry {\n  input = typeof query === 'string' ? JSON.parse(query) : (query || {});\n} catch(e) { input = {}; }\nconst GROQ_API_KEY = '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';\n\nconst { to_email, customer_name, activity, location, message_type, booking_time } = query;\n\nconst prompts = {\n  weather_alert: `Write a warm 3-paragraph weather alert email body for ${customer_name} whose ${activity} at ${location} has been suspended due to unsafe weather conditions. Give them two options: (A) Reschedule at https://ultimatewatersports.com.au/reschedule or (B) Full credit at https://ultimatewatersports.com.au/credit. Warm Australian tone. No subject line or sign-off.`,\n  reschedule_offer: `Write a friendly reschedule offer email for ${customer_name} about their ${activity} at ${location}. Include 10% discount code LOYAL10 and link https://ultimatewatersports.com.au/rebook. No subject or sign-off.`,\n  confirmation: `Write a short enthusiastic booking confirmation for ${customer_name} for ${activity} at ${location} on ${booking_time || 'the scheduled time'}. Tell them to arrive 10 min early and bring sunscreen. No subject or sign-off.`\n};\n\nconst subjects = {\n  weather_alert: `Important update: your ${activity} at ${location}`,\n  reschedule_offer: `Let's find you a new time — ${activity} at ${location}`,\n  confirmation: `You're confirmed! ${activity} at ${location}`\n};\n\nlet emailBody;\ntry {\n const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${GROQ_API_KEY}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    model: 'llama3-8b-8192',\n    messages: [{ role: 'user', content: prompts[message_type] || prompts.weather_alert }],\n    temperature: 0.7,\n    max_tokens: 400\n  })\n});\nconst resData = await res.json();\nemailBody = resData.choices?.[0]?.message?.content?.trim() || 'Email generation failed.';\n      'Authorization': `Bearer ${GROQ_API_KEY}`,\n      'Content-Type': 'application/json'\n    },\n    body: {\n      model: 'llama3-8b-8192',\n      messages: [\n        {\n          role: 'user',\n          content: prompts[message_type] || prompts.weather_alert\n        }\n      ],\n      temperature: 0.7,\n      max_tokens: 400\n    }\n  });\n  emailBody = res.choices?.[0]?.message?.content?.trim() || 'Email body generation failed.';\n} catch (err) {\n  emailBody = `Hi ${customer_name}, we have an important update about your ${activity} at ${location}. Please visit ultimatewatersports.com.au or call us directly.`;\n}\n\nreturn JSON.stringify({ sent: true, to: to_email, subject: subjects[message_type], summary: 'Email drafted for ' + customer_name });"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -1968,
+        -144
+      ],
+      "id": "bd926060-3147-4100-bb5d-b3a6ee00ccbe",
+      "name": "send_customer_email"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wHdnh5SpwxU_T0v8Ny-aNGnPtC2cu47_PF0k0zM7sJA",
+          "mode": "list",
+          "cachedResultName": "Ultimate Watersports — Agent Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wHdnh5SpwxU_T0v8Ny-aNGnPtC2cu47_PF0k0zM7sJA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agent Actions Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wHdnh5SpwxU_T0v8Ny-aNGnPtC2cu47_PF0k0zM7sJA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.Timestamp }}",
+            "Agent": "={{ $json.Agent }}",
+            "Action": "={{ $json.Action }}",
+            "Location": "={{ $json.Location }}",
+            "Details": "={{ $json.Details }}",
+            "Status": "={{ $json.Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Agent",
+              "displayName": "Agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Details",
+              "displayName": "Details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1904,
+        -464
+      ],
+      "id": "d7546d32-23cf-422a-b814-fd5275b7e8ae",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hYeT5O4QWabOvDT7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Gets the current weather conditions for one of our watersports locations.\n\nUse this tool whenever the user asks about weather, wind conditions, safety, or \"dangerous weather\" at any location(s). \nIf the user says \"all locations\", \"every location\", or mentions multiple places, call this tool multiple times (once per location).\n\nParameters:\n- location (string, required): One of the following exact values:\n  - \"hillarys\" (Hillarys Boat Harbour)\n  - \"south_perth\" (South Perth)\n  - \"geraldton\"\n  - \"exmouth\"\n  - \"broome\"\n\nReturns: Current conditions including wind speed, any warnings, and whether conditions are safe or dangerous for watersports activities.\n\nAlways use this tool before deciding if customers need weather-related alerts.",
+        "jsCode": "// Clean input from AI Agent\nconst input = $input.first()?.json || {};\nconst location = (input.location || input.location_tag || 'hillarys').toLowerCase().trim();\n\n// Mock weather data - replace with real API later\nconst mockWeather = {\n  \"hillarys\":    { condition: \"partly cloudy\", windKnots: 12, temp: 24, isDangerous: false },\n  \"south_perth\": { condition: \"clear sky\",     windKnots: 8,  temp: 26, isDangerous: false },\n  \"geraldton\":   { condition: \"strong breeze\", windKnots: 24, temp: 22, isDangerous: true },\n  \"exmouth\":     { condition: \"windy\",         windKnots: 18, temp: 28, isDangerous: false },\n  \"broome\":      { condition: \"humid\",         windKnots: 15, temp: 30, isDangerous: false }\n};\n\nconst data = mockWeather[location] || mockWeather[\"hillarys\"];\n\nconst result = `Weather at ${location}: ${data.condition}, wind ${data.windKnots} knots, temp ${data.temp}°C. Dangerous for watersports: ${data.isDangerous ? 'YES' : 'NO'}.`;\n\nreturn result;   // Return plain string (required by n8n Agent)"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -2704,
+        -144
+      ],
+      "id": "8085ff85-bc3a-420c-b6d4-5c161c43997a",
+      "name": "check_weather"
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $input.first().json;\n\n// Extract the final response from the agent\nlet details = agentOutput.output || \n              agentOutput.text || \n              agentOutput.details || \n              JSON.stringify(agentOutput);\n\n// Clean up the text\ndetails = details\n  .replace(/\\*+/g, '')                    // Remove excessive asterisks\n  .replace(/\\\\n/g, '\\n')                  // Fix escaped newlines\n  .replace(/\\n\\s*\\n/g, '\\n')              // Remove empty lines\n  .trim();\n\nreturn [{\n  json: {\n    Timestamp: new Date().toISOString().split('T')[0],\n    Agent: \"WF-AGENT-01\",\n    Action: \"weather_and_bookings\",\n    Location: \"Multiple\",\n    Details: details,\n    Status: \"completed\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        -464
+      ],
+      "id": "3c22fe20-c111-477f-af39-609fc0b1f639",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -3104,
+        -144
+      ],
+      "id": "e7db1467-10d5-4e39-b825-8670672e177f",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "Ndv7YtQBYOGvpabE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Retrieves today's or current bookings from FareHarbor.\n\nUse this tool whenever the user asks about bookings, reservations, scheduled customers, activities today, or needs to identify which customers might be affected by weather or other issues.\n\nParameters:\n- location_tag (optional, string): Specific location such as \"hillarys\", \"south_perth\", \"geraldton\", \"exmouth\", or \"broome\". \n  Omit this parameter or use \"all\" to get bookings from all 5 locations.\n\nReturns: List of bookings including customer names, emails, activities, booking times, and location.\n\nThis is the main tool for getting customer data needed for alerts.",
+        "jsCode": "let input = {};\ntry {\n  if (typeof query === 'string') {\n    try { input = JSON.parse(query); } catch(e) { input = { location_tag: query }; }\n  } else {\n    input = query || {};\n  }\n} catch(e) { input = {}; }\n\nconst location_tag = input.location_tag || input.location || 'all';\nconst date = input.date || new Date().toISOString().split('T')[0];\n\nconst mockBookings = [\n  { bookingPk: 1001, availabilityPk: 2001, customerName: 'Sarah Mitchell', customerFirstName: 'Sarah', customerEmail: 'sarah.mitchell@gmail.com', activityName: 'Jet Ski Hire 1 Hour', bookingTime: 'Today 10:00 AM', location: 'Hillarys Boat Harbour' },\n  { bookingPk: 1002, availabilityPk: 2001, customerName: 'James Nguyen', customerFirstName: 'James', customerEmail: 'james.nguyen@outlook.com', activityName: 'Flyboarding 30 Min', bookingTime: 'Today 11:30 AM', location: 'Hillarys Boat Harbour' },\n  { bookingPk: 1003, availabilityPk: 2002, customerName: 'Emma Thompson', customerFirstName: 'Emma', customerEmail: 'emma.t@hotmail.com', activityName: 'Jet Ski Hire 2 Hours', bookingTime: 'Today 2:00 PM', location: 'Geraldton' },\n  { bookingPk: 1004, availabilityPk: 2003, customerName: 'Marcus Webb', customerFirstName: 'Marcus', customerEmail: 'marcus.webb@gmail.com', activityName: 'Kayak Tour', bookingTime: 'Today 9:00 AM', location: 'South Perth' },\n  { bookingPk: 1005, availabilityPk: 2004, customerName: 'Priya Sharma', customerFirstName: 'Priya', customerEmail: 'priya.sharma@gmail.com', activityName: 'Flyboarding 30 Min', bookingTime: 'Today 3:30 PM', location: 'Exmouth' }\n];\n\nconst filtered = location_tag === 'all'\n  ? mockBookings\n  : mockBookings.filter(b => b.location.toLowerCase().includes(location_tag.toLowerCase()));\n\nreturn JSON.stringify({\n  date,\n  locationFilter: location_tag,\n  totalCount: filtered.length,\n  bookings: filtered,\n  summary: 'Found ' + filtered.length + ' booking(s) for ' + date + '.'\n});"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -2528,
+        -144
+      ],
+      "id": "13ff8dba-24c4-4d00-bc61-34ba9e5ec9ac",
+      "name": "get_fareharbor_bookings"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_equipment_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log_to_sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "suspend_fareharbor_slot": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_customer_email": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operations Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_fareharbor_bookings": {
+      "ai_tool": [
+        [
+          {
+            "node": "Operations Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "09365b80-3dd1-44e3-8908-523ea9769f88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6b0531dbb17459db0b3b7e501655c4918e9121f9e9c5b034d45e9d058c2244f0"
+  },
+  "id": "W9AfmCyxGuHiTTwM",
+  "tags": [
+    {
+      "updatedAt": "2026-04-24T08:12:24.704Z",
+      "createdAt": "2026-04-24T08:12:24.704Z",
+      "id": "ADi7g0gPdjppQnGX",
+      "name": "fareharbor"
+    },
+    {
+      "updatedAt": "2026-04-24T08:12:24.706Z",
+      "createdAt": "2026-04-24T08:12:24.706Z",
+      "id": "abkMdUNOAPHkfMVl",
+      "name": "ultimate-watersports"
+    },
+    {
+      "updatedAt": "2026-04-24T08:12:24.714Z",
+      "createdAt": "2026-04-24T08:12:24.714Z",
+      "id": "ay0jp7qfl8ZoDaew",
+      "name": "multi-location"
+    },
+    {
+      "updatedAt": "2026-04-25T14:47:36.751Z",
+      "createdAt": "2026-04-25T14:47:36.751Z",
+      "id": "GFFQB48lFXzBfJvw",
+      "name": "ai-agent"
+    },
+    {
+      "updatedAt": "2026-04-25T14:47:36.874Z",
+      "createdAt": "2026-04-25T14:47:36.874Z",
+      "id": "aPTzpavHjP9SyGkl",
+      "name": "langchain"
+    },
+    {
+      "updatedAt": "2026-04-25T14:47:36.880Z",
+      "createdAt": "2026-04-25T14:47:36.880Z",
+      "id": "6sk5Anncd1mQn49u",
+      "name": "ollama"
+    }
+  ]
+}
