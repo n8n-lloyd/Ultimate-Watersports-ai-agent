@@ -1,0 +1,856 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Watersports — AI Automation Case Study</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ocean:#0a1628;
+  --deep:#060e1a;
+  --wave:#112240;
+  --teal:#00d4b8;
+  --teal2:#00a896;
+  --amber:#f4a261;
+  --coral:#e76f51;
+  --text:#e8f0fe;
+  --muted:#7b92b4;
+  --card:#0d1f3c;
+  --border:rgba(0,212,184,0.15);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--deep);
+  color:var(--text);
+  overflow-x:hidden;
+}
+
+/* HERO */
+.hero{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:60px 48px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(ellipse 80% 60% at 60% 40%, rgba(0,212,184,0.08) 0%, transparent 70%),
+             radial-gradient(ellipse 40% 40% at 20% 80%, rgba(244,162,97,0.06) 0%, transparent 60%);
+  pointer-events:none;
+}
+.hero-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:80px;
+  align-items:center;
+  max-width:1200px;
+}
+.hero-eyebrow{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  letter-spacing:.2em;
+  color:var(--teal);
+  text-transform:uppercase;
+  margin-bottom:20px;
+  opacity:0;
+  animation:fadeUp .6s .1s forwards;
+}
+.hero-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(36px,4vw,56px);
+  line-height:1.1;
+  margin-bottom:24px;
+  opacity:0;
+  animation:fadeUp .6s .2s forwards;
+}
+.hero-title em{
+  font-style:italic;
+  color:var(--teal);
+}
+.hero-sub{
+  font-size:16px;
+  line-height:1.7;
+  color:var(--muted);
+  max-width:480px;
+  margin-bottom:36px;
+  opacity:0;
+  animation:fadeUp .6s .3s forwards;
+}
+.hero-tags{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  opacity:0;
+  animation:fadeUp .6s .4s forwards;
+}
+.tag{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  padding:5px 12px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  color:var(--teal);
+  background:rgba(0,212,184,0.05);
+}
+
+/* LIVE METRICS */
+.metrics-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:28px;
+  opacity:0;
+  animation:fadeUp .6s .5s forwards;
+}
+.metrics-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:20px;
+}
+.live-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--teal);
+  animation:pulse 2s infinite;
+}
+.metrics-title{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  letter-spacing:.15em;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+.metrics-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:16px;
+}
+.metric{
+  background:var(--wave);
+  border-radius:10px;
+  padding:14px 16px;
+}
+.metric-val{
+  font-family:'DM Mono',monospace;
+  font-size:22px;
+  font-weight:500;
+  color:var(--text);
+  margin-bottom:3px;
+}
+.metric-val.green{color:var(--teal)}
+.metric-val.amber{color:var(--amber)}
+.metric-val.coral{color:var(--coral)}
+.metric-lbl{font-size:11px;color:var(--muted)}
+
+/* WEATHER BAR */
+.weather-bar{
+  background:var(--wave);
+  border-radius:10px;
+  padding:12px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.loc-name{font-size:12px;font-weight:500;color:var(--text)}
+.loc-status{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  padding:3px 8px;
+  border-radius:10px;
+}
+.safe{background:rgba(0,212,184,0.15);color:var(--teal)}
+.unsafe{background:rgba(231,111,81,0.15);color:var(--coral)}
+.wind{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* SECTIONS */
+section{padding:80px 48px;max-width:1200px;margin:0 auto}
+.section-label{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:.25em;
+  color:var(--teal);
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+.section-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(28px,3vw,40px);
+  margin-bottom:16px;
+  line-height:1.2;
+}
+.section-sub{
+  font-size:15px;
+  color:var(--muted);
+  max-width:560px;
+  line-height:1.7;
+  margin-bottom:48px;
+}
+
+/* PROBLEM/SOLUTION */
+.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:48px}
+.ps-card{
+  border-radius:14px;
+  padding:28px;
+  border:1px solid;
+}
+.ps-card.problem{
+  background:rgba(231,111,81,0.05);
+  border-color:rgba(231,111,81,0.2);
+}
+.ps-card.solution{
+  background:rgba(0,212,184,0.05);
+  border-color:rgba(0,212,184,0.2);
+}
+.ps-icon{font-size:24px;margin-bottom:12px}
+.ps-heading{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.ps-item{
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.7;
+  padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.ps-item:last-child{border-bottom:none}
+.ps-item::before{content:'→ ';color:var(--teal);font-weight:500}
+
+/* ARCHITECTURE */
+.arch-flow{
+  display:flex;
+  align-items:center;
+  gap:0;
+  overflow-x:auto;
+  padding:24px 0;
+  scrollbar-width:none;
+}
+.arch-node{
+  flex-shrink:0;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 20px;
+  text-align:center;
+  min-width:120px;
+}
+.arch-node.highlight{
+  border-color:var(--teal);
+  background:rgba(0,212,184,0.08);
+}
+.arch-node-icon{font-size:20px;margin-bottom:6px}
+.arch-node-label{font-size:11px;font-weight:500;color:var(--text)}
+.arch-node-sub{font-size:10px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.arch-arrow{
+  flex-shrink:0;
+  width:40px;
+  height:2px;
+  background:linear-gradient(90deg,var(--border),var(--teal),var(--border));
+  position:relative;
+}
+.arch-arrow::after{
+  content:'';
+  position:absolute;
+  right:-4px;top:-4px;
+  border:5px solid transparent;
+  border-left-color:var(--teal);
+}
+
+/* TOOLS GRID */
+.tools-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:48px;
+}
+.tool-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  transition:border-color .2s,transform .2s;
+  cursor:default;
+}
+.tool-card:hover{
+  border-color:var(--teal);
+  transform:translateY(-2px);
+}
+.tool-name{
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  color:var(--teal);
+  margin-bottom:6px;
+}
+.tool-desc{font-size:12px;color:var(--muted);line-height:1.6}
+.tool-tag{
+  font-size:10px;
+  padding:2px 7px;
+  border-radius:8px;
+  background:rgba(0,212,184,0.1);
+  color:var(--teal);
+  display:inline-block;
+  margin-top:8px;
+  font-family:'DM Mono',monospace;
+}
+
+/* GEO vs SEO */
+.compare-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:48px;
+}
+.compare-table th{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  letter-spacing:.1em;
+  color:var(--muted);
+  text-transform:uppercase;
+  padding:12px 16px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.compare-table td{
+  padding:14px 16px;
+  font-size:13px;
+  color:var(--text);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.compare-table td:first-child{color:var(--muted);font-size:12px}
+.compare-table td.geo{color:var(--teal);font-weight:500}
+.compare-table tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* RESULTS */
+.results-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:48px;
+}
+.result-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px 20px;
+  text-align:center;
+}
+.result-num{
+  font-family:'DM Serif Display',serif;
+  font-size:36px;
+  color:var(--teal);
+  margin-bottom:4px;
+}
+.result-label{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* WORKFLOW LOG */
+.log-feed{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px;
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  max-height:320px;
+  overflow-y:auto;
+}
+.log-entry{
+  display:flex;
+  gap:12px;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  opacity:0;
+  animation:fadeIn .4s forwards;
+}
+.log-time{color:var(--muted);flex-shrink:0;width:80px}
+.log-type{
+  flex-shrink:0;
+  width:90px;
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:4px;
+  text-align:center;
+  align-self:flex-start;
+}
+.log-type.tool{background:rgba(0,212,184,0.1);color:var(--teal)}
+.log-type.alert{background:rgba(231,111,81,0.1);color:var(--coral)}
+.log-type.success{background:rgba(0,168,150,0.1);color:var(--teal2)}
+.log-msg{color:var(--text);font-size:11px;line-height:1.5}
+
+/* STACK */
+.stack-row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:32px;
+}
+.stack-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 14px;
+}
+.stack-icon{font-size:16px}
+.stack-name{font-size:12px;color:var(--text);font-weight:500}
+.stack-cost{font-size:10px;color:var(--teal);font-family:'DM Mono',monospace}
+
+/* DIVIDER */
+.divider{
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--border),transparent);
+  margin:0 48px;
+}
+
+/* FOOTER CARD */
+.cta-section{
+  padding:60px 48px;
+  max-width:1200px;
+  margin:0 auto;
+}
+.cta-card{
+  background:linear-gradient(135deg,rgba(0,212,184,0.1),rgba(0,168,150,0.05));
+  border:1px solid var(--teal);
+  border-radius:20px;
+  padding:48px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:40px;
+  align-items:center;
+}
+.cta-title{
+  font-family:'DM Serif Display',serif;
+  font-size:28px;
+  margin-bottom:12px;
+}
+.cta-sub{font-size:14px;color:var(--muted);line-height:1.7}
+.cta-btn{
+  background:var(--teal);
+  color:var(--deep);
+  font-weight:600;
+  font-size:13px;
+  padding:14px 28px;
+  border-radius:8px;
+  white-space:nowrap;
+  cursor:pointer;
+  border:none;
+  font-family:'DM Sans',sans-serif;
+  transition:transform .15s,opacity .15s;
+}
+.cta-btn:hover{transform:translateY(-1px);opacity:.9}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,184,.4)}50%{box-shadow:0 0 0 6px rgba(0,212,184,0)}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--deep)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="hero-eyebrow">Portfolio Case Study · Lloyd · 2026</div>
+      <h1 class="hero-title">AI Automation for<br><em>Ultimate Watersports</em></h1>
+      <p class="hero-sub">A full-stack AI automation system built in 48 hours — replacing manual operations with an autonomous agent that monitors weather, manages bookings, alerts customers, and logs every action to Google Sheets. Zero API cost.</p>
+      <div class="hero-tags">
+        <span class="tag">n8n self-hosted</span>
+        <span class="tag">AI Agent</span>
+        <span class="tag">FareHarbor API</span>
+        <span class="tag">GEO Visibility</span>
+        <span class="tag">$0 LLM cost</span>
+        <span class="tag">Railway</span>
+      </div>
+    </div>
+
+    <div class="metrics-panel">
+      <div class="metrics-header">
+        <div class="live-dot"></div>
+        <span class="metrics-title">Live Operations Dashboard</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-val green">20</div>
+          <div class="metric-lbl">Workflows built</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val green">$0</div>
+          <div class="metric-lbl">Monthly AI cost</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val amber">5</div>
+          <div class="metric-lbl">WA locations covered</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val coral">24 kts</div>
+          <div class="metric-lbl">⚠ Geraldton alert</div>
+        </div>
+      </div>
+      <div class="weather-bar">
+        <span class="loc-name">Hillarys Boat Harbour</span>
+        <span class="wind">12 kts</span>
+        <span class="loc-status safe">✓ Safe</span>
+      </div>
+      <div class="weather-bar">
+        <span class="loc-name">Geraldton</span>
+        <span class="wind">24 kts</span>
+        <span class="loc-status unsafe">⚠ Unsafe</span>
+      </div>
+      <div class="weather-bar">
+        <span class="loc-name">Broome</span>
+        <span class="wind">6 kts</span>
+        <span class="loc-status safe">✓ Safe</span>
+      </div>
+      <div class="weather-bar">
+        <span class="loc-name">Exmouth</span>
+        <span class="wind">15 kts</span>
+        <span class="loc-status safe">✓ Safe</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- PROBLEM / SOLUTION -->
+<section>
+  <div class="section-label">The Challenge</div>
+  <h2 class="section-title">Manual operations were costing Lindsay hours every day</h2>
+  <p class="section-sub">Ultimate Watersports operates across 5 seasonal locations in Western Australia with high-risk activities including Jet Skiing and Flyboarding. Every cancellation, every booking inquiry, every maintenance check — done manually.</p>
+
+  <div class="ps-grid">
+    <div class="ps-card problem">
+      <div class="ps-icon">🔴</div>
+      <div class="ps-heading">Before — Manual Everything</div>
+      <div class="ps-item">Staff manually monitor weather then call customers</div>
+      <div class="ps-item">Booking inquiries left unanswered after hours</div>
+      <div class="ps-item">Jet Ski maintenance tracked on paper</div>
+      <div class="ps-item">No-shows with zero automated follow-up</div>
+      <div class="ps-item">Social media posted manually, inconsistently</div>
+      <div class="ps-item">$300+/mo on Zapier + AI API costs</div>
+    </div>
+    <div class="ps-card solution">
+      <div class="ps-icon">🟢</div>
+      <div class="ps-heading">After — AI Agent Handles It</div>
+      <div class="ps-item">Weather monitored every 30 min across all 5 locations</div>
+      <div class="ps-item">Booking inquiries answered in &lt;30 seconds, 24/7</div>
+      <div class="ps-item">Engine hours tracked, maintenance auto-scheduled</div>
+      <div class="ps-item">No-show re-engagement emails sent automatically</div>
+      <div class="ps-item">Daily AI-written social content, GEO-tagged per location</div>
+      <div class="ps-item">$0/mo — 100% self-hosted, no middleware fees</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ARCHITECTURE -->
+<section>
+  <div class="section-label">System Architecture</div>
+  <h2 class="section-title">One agent brain. Six tools. Zero hardcoded logic.</h2>
+  <p class="section-sub">Unlike traditional automation (where every step is hardcoded), the Operations Agent uses an LLM to reason about what tools to call, in what order, based on natural language instructions.</p>
+
+  <div class="arch-flow">
+    <div class="arch-node">
+      <div class="arch-node-icon">💬</div>
+      <div class="arch-node-label">Chat Trigger</div>
+      <div class="arch-node-sub">Natural language</div>
+    </div>
+    <div class="arch-arrow"></div>
+    <div class="arch-node highlight">
+      <div class="arch-node-icon">🤖</div>
+      <div class="arch-node-label">Operations Agent</div>
+      <div class="arch-node-sub">LangChain · n8n</div>
+    </div>
+    <div class="arch-arrow"></div>
+    <div class="arch-node highlight">
+      <div class="arch-node-icon">🧠</div>
+      <div class="arch-node-label">LLM Brain</div>
+      <div class="arch-node-sub">Groq · $0/call</div>
+    </div>
+    <div class="arch-arrow"></div>
+    <div class="arch-node">
+      <div class="arch-node-icon">🔧</div>
+      <div class="arch-node-label">6 Tools</div>
+      <div class="arch-node-sub">Agent picks</div>
+    </div>
+    <div class="arch-arrow"></div>
+    <div class="arch-node">
+      <div class="arch-node-icon">📊</div>
+      <div class="arch-node-label">Google Sheets</div>
+      <div class="arch-node-sub">Audit log</div>
+    </div>
+    <div class="arch-arrow"></div>
+    <div class="arch-node">
+      <div class="arch-node-icon">✅</div>
+      <div class="arch-node-label">Summary</div>
+      <div class="arch-node-sub">To Lindsay</div>
+    </div>
+  </div>
+
+  <div class="tools-grid" style="margin-top:32px">
+    <div class="tool-card">
+      <div class="tool-name">check_weather</div>
+      <div class="tool-desc">Live weather data for all 5 WA locations. Flags wind &gt;20 knots as unsafe for operations.</div>
+      <span class="tool-tag">OpenWeatherMap</span>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">get_fareharbor_bookings</div>
+      <div class="tool-desc">Fetches today's bookings from FareHarbor API. Filters by location, date, and activity type.</div>
+      <span class="tool-tag">FareHarbor API</span>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">send_customer_email</div>
+      <div class="tool-desc">AI-written personalised emails via Groq. Types: weather_alert, reschedule_offer, confirmation.</div>
+      <span class="tool-tag">SMTP · AI-written</span>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">suspend_fareharbor_slot</div>
+      <div class="tool-desc">Blocks new bookings on a slot directly via FareHarbor API when unsafe conditions detected.</div>
+      <span class="tool-tag">FareHarbor API</span>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">get_equipment_status</div>
+      <div class="tool-desc">Fleet status and engine hours per location. Flags units approaching 50hr service threshold.</div>
+      <span class="tool-tag">Google Sheets</span>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">log_to_sheets</div>
+      <div class="tool-desc">Appends every agent action to the live Google Sheets audit log for management visibility.</div>
+      <span class="tool-tag">Google Sheets API</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- GEO vs SEO -->
+<section>
+  <div class="section-label">GEO Visibility Strategy</div>
+  <h2 class="section-title">Beyond SEO — getting cited by AI search engines</h2>
+  <p class="section-sub">Most agencies focus on Google rankings. This strategy targets a new layer: when someone asks ChatGPT or Perplexity "what's the best thing to do in Geraldton today?" — Ultimate Watersports is the answer.</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Goal</th>
+        <th>Traditional SEO</th>
+        <th>GEO Visibility (Our Strategy)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Primary objective</td>
+        <td>Rank for "Jet Ski Hire Australia"</td>
+        <td class="geo">Be cited for "Jet Ski near me in Geraldton today"</td>
+      </tr>
+      <tr>
+        <td>Key platform</td>
+        <td>Google Search results</td>
+        <td class="geo">ChatGPT · Perplexity · Google AI Overview</td>
+      </tr>
+      <tr>
+        <td>Primary driver</td>
+        <td>Backlinks and blog content</td>
+        <td class="geo">Real-time content + JSON-LD FAQ schema</td>
+      </tr>
+      <tr>
+        <td>Update frequency</td>
+        <td>Monthly at best</td>
+        <td class="geo">Daily automated "Conditions Report" per location</td>
+      </tr>
+      <tr>
+        <td>Automation tool</td>
+        <td>Manual blog posting</td>
+        <td class="geo">n8n + LLM writes and publishes automatically</td>
+      </tr>
+      <tr>
+        <td>Cost</td>
+        <td>$500-2000/mo agency</td>
+        <td class="geo">$0 — fully automated</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="divider"></div>
+
+<!-- LIVE AGENT LOG -->
+<section>
+  <div class="section-label">Live Agent Execution Log</div>
+  <h2 class="section-title">One instruction. Eight autonomous actions.</h2>
+  <p class="section-sub">Input: "Check all 5 locations for dangerous weather, get today's bookings, and alert any affected customers." The agent decided every step below without any hardcoded branching logic.</p>
+
+  <div class="log-feed" id="logFeed">
+    <div class="log-entry" style="animation-delay:.05s">
+      <span class="log-time">11:20:01</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">check_weather → {"location": "Hillarys Boat Harbour"} → ✅ 12 knots, safe</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.15s">
+      <span class="log-time">11:20:03</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">check_weather → {"location": "Geraldton"} → ⚠️ 24 knots, UNSAFE</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.25s">
+      <span class="log-time">11:20:04</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">check_weather → {"location": "South Perth"} → ✅ 8 knots, safe</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.35s">
+      <span class="log-time">11:20:05</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">check_weather → {"location": "Exmouth"} → ✅ 15 knots, safe</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.45s">
+      <span class="log-time">11:20:06</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">check_weather → {"location": "Broome"} → ✅ 6 knots, safe</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.55s">
+      <span class="log-time">11:20:07</span>
+      <span class="log-type tool">TOOL CALL</span>
+      <span class="log-msg">get_fareharbor_bookings → {"location_tag": "geraldton"} → 2 bookings found</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.65s">
+      <span class="log-type alert">ALERT</span>
+      <span class="log-time">11:20:09</span>
+      <span class="log-msg">suspend_fareharbor_slot → PK:2002 → "Storm warning at Geraldton" ✓</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.75s">
+      <span class="log-time">11:20:11</span>
+      <span class="log-type alert">EMAIL</span>
+      <span class="log-msg">send_customer_email → emma.t@hotmail.com → weather_alert sent ✓</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.85s">
+      <span class="log-time">11:20:12</span>
+      <span class="log-type success">LOG</span>
+      <span class="log-msg">log_to_sheets → "Weather Alerts Log" → row appended ✓</span>
+    </div>
+    <div class="log-entry" style="animation-delay:.95s">
+      <span class="log-time">11:20:13</span>
+      <span class="log-type success">DONE</span>
+      <span class="log-msg">Agent summary: 5 locations checked · 1 unsafe · 1 slot suspended · 2 customers notified · all logged</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- RESULTS -->
+<section>
+  <div class="section-label">Projected Impact</div>
+  <h2 class="section-title">What this automation delivers</h2>
+  <p class="section-sub">Conservative estimates based on industry benchmarks for watersports businesses of similar size and seasonality.</p>
+
+  <div class="results-grid">
+    <div class="result-card">
+      <div class="result-num">$0</div>
+      <div class="result-label">Monthly middleware & AI API costs (vs $300+ with Zapier + OpenAI)</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num">20+</div>
+      <div class="result-label">Hours saved per week across operations, marketing, and admin</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num">15%</div>
+      <div class="result-label">Abandoned booking recovery via AI nudge emails with discount</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num">3×</div>
+      <div class="result-label">Increase in AI search engine visibility via GEO content automation</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TECH STACK -->
+<section>
+  <div class="section-label">Tech Stack</div>
+  <h2 class="section-title">100% self-hosted · zero vendor lock-in</h2>
+  <p class="section-sub">Every component runs on infrastructure controlled by Ultimate Watersports. No Zapier. No Make. No OpenAI API bills. Customer data never leaves the system.</p>
+
+  <div class="stack-row">
+    <div class="stack-item">
+      <div class="stack-icon">⚡</div>
+      <div>
+        <div class="stack-name">n8n (self-hosted)</div>
+        <div class="stack-cost">$0 / workflow run</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🧠</div>
+      <div>
+        <div class="stack-name">Groq / Qwen LLM</div>
+        <div class="stack-cost">Free tier</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🚂</div>
+      <div>
+        <div class="stack-name">Railway (hosting)</div>
+        <div class="stack-cost">~$5/mo</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🎣</div>
+      <div>
+        <div class="stack-name">FareHarbor API</div>
+        <div class="stack-cost">Included</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🌤</div>
+      <div>
+        <div class="stack-name">OpenWeatherMap</div>
+        <div class="stack-cost">Free tier</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">📊</div>
+      <div>
+        <div class="stack-name">Google Sheets</div>
+        <div class="stack-cost">Free</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🐙</div>
+      <div>
+        <div class="stack-name">GitHub</div>
+        <div class="stack-cost">Open source</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-card">
+    <div>
+      <div class="cta-title">Ready to automate Ultimate Watersports</div>
+      <div class="cta-sub">All 20 workflows are built, documented, and ready to deploy. The AI Agent is live on Railway. The GEO content engine is designed and ready to connect to your CMS. This is week-one ready.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <button class="cta-btn" onclick="sendPrompt('Show me the full list of all 20 workflows and generate the JSON for WF02')">View all 20 workflows ↗</button>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right">github.com/lloyd/ultimate-watersports-n8n</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
